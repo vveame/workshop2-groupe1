@@ -136,6 +136,18 @@ All build steps are executed inside **Docker containers** to ensure consistency.
 
 ---
 
+## Jenkins Pipeline Script
+
+This Jenkins pipeline runs inside a Docker container using the custom image my-maven-git-sonarscanner:latest, which includes Maven, Git, and SonarScanner tools.
+
+* **Checkout stage:** Cleans the workspace and clones the project repository from GitHub.
+* **Build stage:** Navigates to the Maven project directory and runs mvn clean test package to build the project and execute tests.
+* **SonarQube Analysis stage:** Runs SonarScanner with Jenkins-managed credentials to analyze the code and send the results to the configured SonarQube server. The analysis uses project-specific keys and paths to source code and compiled classes.
+
+This pipeline ensures the entire build and code quality analysis process is containerized, reproducible, and integrated with SonarQube for continuous quality monitoring.
+
+---
+
 ## Custom Maven + Git + SonarScanner Image
 
 This image is used as the **Jenkins build agent**.
@@ -293,11 +305,12 @@ This method demonstrates:
 
 ---
 
-##Screenshots
+## Screenshots
 
  * The following screenshot shows a successful Jenkins job where the analysis data has been sent to SonarQube:
 
 <img width="1232" height="639" alt="image" src="https://github.com/user-attachments/assets/96bc94a8-4c4e-48b5-9703-ca1100484d3d" />
+
 
 * This screenshot displays the history of code analyses triggered by our CI pipeline in SonarQube:
 
