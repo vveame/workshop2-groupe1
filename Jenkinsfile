@@ -22,7 +22,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                dir('java-maven/maven') {
+                dir('workshop2-groupe1/maven') {
                     sh 'mvn clean test package'
                 }
             }
@@ -30,7 +30,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                dir('java-maven/maven') {
+                dir('workshop2-groupe1/maven') {
 
                     // Run sonar with Jenkins credentials + server
                     withSonarQubeEnv('java_maven') {

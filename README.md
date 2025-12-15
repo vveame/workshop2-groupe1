@@ -136,7 +136,7 @@ All build steps are executed inside **Docker containers** to ensure consistency.
 
 ---
 
-## Jenkins Pipeline Script
+## Jenkins Pipeline Script (Jenkinsfile) – Explanation
 
 This Jenkins pipeline runs inside a Docker container using the custom image my-maven-git-sonarscanner:latest, which includes Maven, Git, and SonarScanner tools.
 
