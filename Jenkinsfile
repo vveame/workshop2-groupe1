@@ -1,40 +1,52 @@
 pipeline {
     agent {
         docker {
-            // Image contenant Maven et Git
-            image 'my-maven-git:latest'
-            // Pour réutiliser le cache Maven local entre builds
-            args '-v $HOME/.m2:/root/.m2'
+            image 'my-maven-git-sonarscanner:latest'
+            args '-v /var/jenkins_home/.m2:/var/jenkins_home/.m2'
         }
     }
+
+    environment {
+        SONAR_PROJECT_KEY = "DevopsPipeLine"
+        SONAR_PROJECT_NAME = "java-maven"
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
-                // clean the directory
                 sh "rm -rf *"
-                // Checkout the Git repository
                 sh "git clone https://github.com/vveame/java-maven.git"
             }
         }
+
         stage('Build') {
             steps {
-                // Here, we can can run Maven commands
-                script {
-                    
-                    def currentDir = pwd()
-                    echo "Current directory: ${currentDir}"
-                    
-                    // Navigate to the directory containing the Maven project
-                    dir('java-maven/maven') {
-                        // Run Maven commands
-                        sh 'mvn clean test package'
-                        sh "java -jar target/maven-0.0.1-SNAPSHOT.jar"
+                dir('java-maven/maven') {
+                    sh 'mvn clean test package'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('java-maven/maven') {
+
+                    // Run sonar with Jenkins credentials + server
+                    withSonarQubeEnv('java_maven') {
+                        sh """
+                        sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                            -Dsonar.projectVersion=1.0 \
+                            -Dsonar.sources=src/main/java \
+                            -Dsonar.java.binaries=target/classes \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.token=$SONAR_AUTH_TOKEN
+                        """
                     }
-                    
-                   
                 }
             }
         }
     }
 }
-
