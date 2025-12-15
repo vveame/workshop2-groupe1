@@ -16,7 +16,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 sh "rm -rf *"
-                sh "git clone https://github.com/vveame/java-maven.git"
+                sh "git clone https://github.com/vveame/workshop2-groupe1.git"
             }
         }
 
