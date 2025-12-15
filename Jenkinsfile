@@ -15,7 +15,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                sh "rm -rf *"
+                sh "git clone https://github.com/vveame/java-maven.git"
             }
         }
 
