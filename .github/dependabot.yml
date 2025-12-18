@@ -7,7 +7,7 @@ updates:
     schedule:
       interval: "weekly"    # daily | weekly | monthly
       day: "thursday"
-      time: "11:10"
+      time: "12:14"
       timezone: "Africa/Casablanca"
 
     open-pull-requests-limit: 5
