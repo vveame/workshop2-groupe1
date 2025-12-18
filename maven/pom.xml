@@ -23,6 +23,35 @@
             <artifactId>sonar-maven-plugin</artifactId>
             <version>3.10.0.2594</version>
       </plugin>
+      
+      <plugin>
+      <groupId>org.owasp</groupId>
+      <artifactId>dependency-check-maven</artifactId>
+      <version>12.1.9</version> <!-- Vérifie la dernière version disponible -->
+      <executions>
+        <execution>
+          <id>check-dependencies</id>
+          <goals>
+            <goal>check</goal>
+          </goals>
+          <phase>verify</phase> <!-- S'exécute pendant mvn verify -->
+        </execution>
+      </executions>
+      <configuration>
+        <!-- Génération des rapports -->
+        <format>ALL</format> <!-- HTML, XML, JSON, CSV -->
+        <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+        <!-- Bloque le build si vulnérabilité critique (CVSS >= 7) -->
+        <failBuildOnCVSS>7</failBuildOnCVSS>
+        <!-- Ignorer certains CVE connus si nécessaire -->
+        <suppressionFile>${project.basedir}/dependency-suppression.xml</suppressionFile>
+        <!-- Analyse des dépendances directes et transitives -->
+        <analyzeTransitive>true</analyzeTransitive>
+        <!-- Mémoriser la base de données locale pour accélérer les scans -->
+        <dataDirectory>${project.build.directory}/dependency-check-data</dataDirectory>
+      </configuration>
+    </plugin>
+      
     </plugins>
   </build>
   
