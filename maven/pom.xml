@@ -43,8 +43,6 @@
         <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
         <!-- Bloque le build si vulnérabilité critique (CVSS >= 7) -->
         <failBuildOnCVSS>7</failBuildOnCVSS>
-        <!-- Ignorer certains CVE connus si nécessaire -->
-        <suppressionFile>${project.basedir}/dependency-suppression.xml</suppressionFile>
         <!-- Analyse des dépendances directes et transitives -->
         <analyzeTransitive>true</analyzeTransitive>
         <!-- Mémoriser la base de données locale pour accélérer les scans -->
