@@ -11,6 +11,11 @@ pipeline {
         SONAR_PROJECT_NAME = "java-maven"
     }
 
+    options {
+        // Supprime le workspace automatiquement avant chaque build
+        skipDefaultCheckout(false)
+    }
+
     stages {
 
         stage('Checkout') {
@@ -20,10 +25,17 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build + Test + OWASP') {
             steps {
                 dir('workshop2-groupe1/maven') {
-                    sh 'mvn clean test package'
+                    // OWASP runs automatically because it's bound to verify
+                    sh 'mvn clean verify'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'workshop2-groupe1/maven/target/dependency-check-report/**',
+                                     allowEmptyArchive: true
                 }
             }
         }
