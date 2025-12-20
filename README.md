@@ -10,7 +10,7 @@ This repository documents **two complete CI approaches** used to build, test, an
 The goal of this project was to understand and compare:
 
 * A **fully managed CI pipeline using GitHub Actions**
-* A **self-hosted CI pipeline using Jenkins + Docker**
+* A **self-hosted CI pipeline using Jenkins + Docker**, extended with **security analysis**
 
 Both approaches analyze the same Java Maven project and publish **code quality metrics** (bugs, vulnerabilities, code smells, coverage, duplications) to **SonarQube**.
 
@@ -25,6 +25,8 @@ Both approaches analyze the same Java Maven project and publish **code quality m
 * Jenkins
 * Docker & Docker volumes
 * Ngrok (for exposing local SonarQube to Jenkins)
+* GitHub Dependabot
+* OWASP Dependency-Check
 
 ---
 
@@ -118,6 +120,7 @@ In this approach, I built a **self-hosted Jenkins CI pipeline** using:
 * Jenkins running inside Docker
 * Custom Docker images for build isolation
 * SonarQube for static analysis
+* **OWASP Dependency-Check for dependency vulnerability scanning**
 
 This method provides **full control** over tools, environments, and execution.
 
@@ -125,14 +128,61 @@ This method provides **full control** over tools, environments, and execution.
 
 ## Jenkins Architecture
 
-Jenkins is used to:
+Jenkins is used to execute a scripted pipeline job (defined directly in Jenkins) that :
 
-1. Execute a scripted pipeline job (defined directly in Jenkins)
-2. Build and test the project using Maven
-3. Run **SonarScanner**
-4. Send analysis results to SonarQube
+1. Clone the GitHub repository
+2. Build and test the Maven project
+3. Perform **OWASP dependency security analysis**
+4. Run SonarQube analysis
+5. Publish reports and quality metrics
 
 All build steps are executed inside **Docker containers** to ensure consistency.
+
+---
+
+## Security Enhancements Added (NEW)
+
+In addition to build and static code quality analysis, this method was extended to include dependency security monitoring using GitHub Dependabot and OWASP Dependency-Check.
+These tools strengthen the pipeline by detecting outdated libraries and known vulnerabilities (CVEs) early in the CI process.
+
+---
+
+## Dependabot – Automated Dependency Updates (NEW)
+
+Dependabot was enabled to **automatically detect and update vulnerable dependencies**.
+
+#### Configuration Steps
+- Enabled in:  
+  `Repository Settings → Advanced Security`
+  - Dependabot alerts
+  - Dependabot security updates
+- Added configuration file:  
+  `.github/dependabot.yml`
+- Dependabot works **only on the default branch**
+- For forked repositories, Dependabot must be enabled in:  
+  `Insights → Dependency graph → Dependabot`
+
+#### Behavior
+- Dependabot automatically detects vulnerable dependencies
+- Creates a **pull request** with the proposed update
+- The user can:
+  - Review and merge the PR
+  - Or close it if not needed
+ 
+---
+
+### OWASP Dependency-Check (NEW)
+
+OWASP Dependency-Check analyzes third-party dependencies and detects known vulnerabilities using:
+* NVD (National Vulnerability Database)
+* GitHub Advisory Database
+* CISA Known Exploited Vulnerabilities Catalog
+
+To enhance security analysis in Jenkins:
+
+- The **OWASP Dependency-Check plugin** was added to `pom.xml`
+- This plugin scans project dependencies against known CVEs
+- It is automatically executed during the Maven `verify` phase
 
 ---
 
@@ -145,6 +195,36 @@ This Jenkins pipeline runs inside a Docker container using the custom image my-m
 * **SonarQube Analysis stage:** Runs SonarScanner with Jenkins-managed credentials to analyze the code and send the results to the configured SonarQube server. The analysis uses project-specific keys and paths to source code and compiled classes.
 
 This pipeline ensures the entire build and code quality analysis process is containerized, reproducible, and integrated with SonarQube for continuous quality monitoring.
+
+### New Pipeline Stage: `Build + Test + OWASP` (NEW)
+
+The Jenkins pipeline was modified to integrate **security analysis** into the CI process.
+
+```groovy
+stage('Build + Test + OWASP') {
+    steps {
+        dir('workshop2-groupe1/maven') {
+            // OWASP runs automatically because it's bound to verify
+            sh 'mvn clean verify'
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'workshop2-groupe1/maven/target/dependency-check-report/**',
+                             allowEmptyArchive: true
+        }
+    }
+}
+```
+
+* mvn clean verify:
+  - Compiles the project
+  - Runs unit tests
+  - Executes OWASP Dependency-Check automatically
+* OWASP generates a dependency vulnerability report
+* The report is archived as a Jenkins artifact
+* An option is enabled to clean the workspace after execution
+* This ensures that security checks are mandatory before code quality analysis.
 
 ---
 
@@ -315,6 +395,19 @@ This method demonstrates:
 * This screenshot displays the history of code analyses triggered by our CI pipeline in SonarQube:
 
 <img width="1564" height="802" alt="image" src="https://github.com/user-attachments/assets/23cd94fe-7cc8-463e-a19a-65a0d0a4546a" />
+
+
+* This screenshot shows an automatically generated Dependabot pull request detected on the default branch:
+![WhatsApp Image 2025-12-18 at 1 03 46 PM](https://github.com/user-attachments/assets/3793d280-3704-4124-be15-e43613f6e4b1)
+
+
+* This screenshot shows a successful Jenkins pipeline execution with archived OWASP Dependency-Check reports generated during the build and test stage:
+![WhatsApp Image 2025-12-19 at 8 59 31 PM](https://github.com/user-attachments/assets/4c4adcf6-3ef4-466e-bfb5-91ac4502eb9a)
+
+
+* This screenshot displays the OWASP Dependency-Check HTML report, summarizing the vulnerability analysis of project dependencies using public security databases:
+![WhatsApp Image 2025-12-19 at 9 01 30 PM](https://github.com/user-attachments/assets/5ee838b1-eadb-4c91-ad59-89e743df16ca)
+
 
 ---
 
