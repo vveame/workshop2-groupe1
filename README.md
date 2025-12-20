@@ -1,4 +1,4 @@
-# Workshop 2 – Groupe 1
+# Workshop 3 – Groupe 1
 Feddouli Wiam - Metmari Hafsa - Lboudaoudi Zaynab - Aalaoui Ismail
 
 ---
@@ -10,7 +10,7 @@ This repository documents **two complete CI approaches** used to build, test, an
 The goal of this project was to understand and compare:
 
 * A **fully managed CI pipeline using GitHub Actions**
-* A **self-hosted CI pipeline using Jenkins + Docker**, extended with **security analysis**
+* A **self-hosted CI pipeline using Jenkins + Docker**, extended with **security analysis** (UPDATED)
 
 Both approaches analyze the same Java Maven project and publish **code quality metrics** (bugs, vulnerabilities, code smells, coverage, duplications) to **SonarQube**.
 
@@ -25,8 +25,8 @@ Both approaches analyze the same Java Maven project and publish **code quality m
 * Jenkins
 * Docker & Docker volumes
 * Ngrok (for exposing local SonarQube to Jenkins)
-* GitHub Dependabot
-* OWASP Dependency-Check
+* GitHub Dependabot (NEW)
+* OWASP Dependency-Check (NEW)
 
 ---
 
