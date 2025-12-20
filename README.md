@@ -168,6 +168,16 @@ Dependabot was enabled to **automatically detect and update vulnerable dependenc
 - The user can:
   - Review and merge the PR
   - Or close it if not needed
+
+#### dependabot.yaml - Explanation
+
+This Dependabot configuration enables automated monitoring and updating of Maven dependencies for the project.
+
+Dependabot checks the pom.xml file located in the /maven directory and runs weekly every Thursday at 11:18 (Africa/Casablanca timezone).
+It scans both direct and transitive dependencies and automatically opens up to 5 pull requests when updates are available.
+
+Each pull request uses a standardized commit message starting with deps and includes the scope of the change. Pull requests are automatically assigned and requested for review by the specified user.
+Related dependencies (such as Spring libraries) are grouped into a single pull request to reduce noise and simplify maintenance.
  
 ---
 
