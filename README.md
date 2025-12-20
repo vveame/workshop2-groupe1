@@ -111,7 +111,7 @@ This significantly reduces build time on subsequent runs.
 
 ---
 
-# Method 2: Jenkins + Docker + SonarQube
+# Method 2: Jenkins + Docker + SonarQube (UPDATED)
 
 ## Overview
 
@@ -147,7 +147,7 @@ These tools strengthen the pipeline by detecting outdated libraries and known vu
 
 ---
 
-## Dependabot – Automated Dependency Updates (NEW)
+### Dependabot – Automated Dependency Updates (NEW)
 
 Dependabot was enabled to **automatically detect and update vulnerable dependencies**.
 
