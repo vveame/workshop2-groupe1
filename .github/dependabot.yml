@@ -1,0 +1,36 @@
+version: 2
+
+updates:
+  # Dépendances Maven (Java)
+  - package-ecosystem: "maven"
+    directory: "/maven"          # Chemin du pom.xml
+    schedule:
+      interval: "weekly"    # daily | weekly | monthly
+      day: "thursday"
+      time: "11:18"
+      timezone: "Africa/Casablanca"
+
+    open-pull-requests-limit: 5
+
+    # Mise à jour des dépendances directes et transitives
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+    # Message de commit
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+    # Assignation et revue
+    reviewers:
+      - "vveame"
+     
+    assignees:
+      - "vveame"
+
+    # Regroupement des PRs (recommandé)
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
