@@ -25,8 +25,9 @@ Both approaches analyze the same Java Maven project and publish **code quality m
 * Jenkins
 * Docker & Docker volumes
 * Ngrok (for exposing local SonarQube to Jenkins)
-* GitHub Dependabot (NEW)
-* OWASP Dependency-Check (NEW)
+* GitHub Dependabot
+* OWASP Dependency-Check
+* Trivy (NEW)
 
 ---
 
@@ -121,6 +122,7 @@ In this approach, I built a **self-hosted Jenkins CI pipeline** using:
 * Custom Docker images for build isolation
 * SonarQube for static analysis
 * **OWASP Dependency-Check for dependency vulnerability scanning**
+* Trivy for container image scanning (NEW)
 
 This method provides **full control** over tools, environments, and execution.
 
@@ -130,11 +132,12 @@ This method provides **full control** over tools, environments, and execution.
 
 Jenkins is used to execute a scripted pipeline job (defined directly in Jenkins) that :
 
-1. Clone the GitHub repository
-2. Build and test the Maven project
-3. Perform **OWASP dependency security analysis**
-4. Run SonarQube analysis
-5. Publish reports and quality metrics
+1.Scans Docker image vulnerabilities with Trivy (NEW)
+2. Clone the GitHub repository
+3. Build and test the Maven project
+4. Perform **OWASP dependency security analysis**
+5. Run SonarQube analysis
+6. Publish reports and quality metrics
 
 All build steps are executed inside **Docker containers** to ensure consistency.
 
@@ -143,11 +146,12 @@ All build steps are executed inside **Docker containers** to ensure consistency.
 ## Security Enhancements Added (NEW)
 
 In addition to build and static code quality analysis, this method was extended to include dependency security monitoring using GitHub Dependabot and OWASP Dependency-Check.
+Trivy is also integrated to scan the custom build image for vulnerabilities:
 These tools strengthen the pipeline by detecting outdated libraries and known vulnerabilities (CVEs) early in the CI process.
 
 ---
 
-### Dependabot – Automated Dependency Updates (NEW)
+### Dependabot – Automated Dependency Updates
 
 Dependabot was enabled to **automatically detect and update vulnerable dependencies**.
 
@@ -181,7 +185,7 @@ Related dependencies (such as Spring libraries) are grouped into a single pull r
  
 ---
 
-### OWASP Dependency-Check (NEW)
+### OWASP Dependency-Check
 
 OWASP Dependency-Check analyzes third-party dependencies and detects known vulnerabilities using:
 * NVD (National Vulnerability Database)
@@ -196,45 +200,67 @@ To enhance security analysis in Jenkins:
 
 ---
 
-## Jenkins Pipeline Script (Jenkinsfile) – Explanation
+### Trivy – Container Image Scanning (NEW)
 
-This Jenkins pipeline runs inside a Docker container using the custom image my-maven-git-sonarscanner:latest, which includes Maven, Git, and SonarScanner tools.
+**Trivy** is a comprehensive vulnerability scanner for containers and other artifacts that detects security issues in OS packages and application dependencies.
 
-* **Checkout stage:** Cleans the workspace and clones the project repository from GitHub.
-* **Build stage:** Navigates to the Maven project directory and runs mvn clean test package to build the project and execute tests.
-* **SonarQube Analysis stage:** Runs SonarScanner with Jenkins-managed credentials to analyze the code and send the results to the configured SonarQube server. The analysis uses project-specific keys and paths to source code and compiled classes.
+In this pipeline, **Trivy scans the custom Docker image (`my-maven-git-sonarscanner:latest`) before any build stage**, ensuring that vulnerabilities in the base image or installed tools (Maven, Git, SonarScanner) don't compromise the pipeline. It enforces a security policy where:
+- **CRITICAL** vulnerabilities fail the build immediately
+- **MEDIUM** vulnerabilities mark the build as unstable
+- **LOW** vulnerabilities are logged for awareness
 
-This pipeline ensures the entire build and code quality analysis process is containerized, reproducible, and integrated with SonarQube for continuous quality monitoring.
+This adds an **essential security gate** that prevents using compromised build environments in the CI/CD process.
 
-### New Pipeline Stage: `Build + Test + OWASP` (NEW)
+#### Custom Trivy image with Caching
 
-The Jenkins pipeline was modified to integrate **security analysis** into the CI process.
+**The custom `trivy-cached` image pre-downloads vulnerability databases** so Trivy doesn't need to fetch them on every scan. This significantly **reduces scan time** from minutes to seconds in the pipeline.
 
-```groovy
-stage('Build + Test + OWASP') {
-    steps {
-        dir('workshop2-groupe1/maven') {
-            // OWASP runs automatically because it's bound to verify
-            sh 'mvn clean verify'
-        }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'workshop2-groupe1/maven/target/dependency-check-report/**',
-                             allowEmptyArchive: true
-        }
-    }
-}
+```Dockerfile
+# Dockerfile for trivy-cached
+FROM aquasec/trivy:latest
+
+# Pre-download and cache vulnerability databases
+RUN trivy image --download-db-only && \
+    trivy image --download-java-db-only
+
+# Set cache directory
+VOLUME /root/.cache/trivy
 ```
 
-* mvn clean verify:
-  - Compiles the project
-  - Runs unit tests
-  - Executes OWASP Dependency-Check automatically
-* OWASP generates a dependency vulnerability report
-* The report is archived as a Jenkins artifact
-* An option is enabled to clean the workspace after execution
-* This ensures that security checks are mandatory before code quality analysis.
+Without caching, each Trivy scan would:
+1. Download 100+ MB of vulnerability data from remote servers
+2. Take 2-5 minutes per scan
+3. Consume more bandwidth and pipeline time
+
+With the cached image:
+1. Vulnerability databases are pre-loaded in the image
+2. Scans complete in 10-30 seconds
+3. Consistent performance regardless of network conditions
+4. Reduced external dependencies during pipeline execution
+
+This optimization is **critical for CI/CD** where fast feedback loops are essential, and it ensures the security scan doesn't become a bottleneck in the pipeline.
+
+---
+
+## Jenkins Pipeline (Jenkinsfile)
+
+### Script Explanation
+
+This enhanced Jenkins pipeline implements a **multi-stage security-first CI/CD workflow** using Docker containers for isolation and reproducibility. The pipeline features parameterized execution, container security scanning, and comprehensive quality gates.
+
+* **Pipeline Configuration:** Uses `agent none` for optimized resource management, with parameters allowing conditional OWASP dependency scanning.
+* **Trivy Scan Stage:** Performs container image vulnerability scanning on the custom `my-maven-git-sonarscanner:latest` image using a pre-cached Trivy image. A complete JSON vulnerability report is archived.
+* **Checkout Stage:** Cleans the workspace and clones the project repository from GitHub into a fresh Docker container with persistent Maven repository caching.
+* **Build & Test Stage:** Compiles the Java Maven project, runs unit tests, and archives test results and reports using the JUnit plugin for test result tracking.
+* **OWASP Dependency Check Stage:** Conditionally executes based on pipeline parameters, scanning project dependencies for known vulnerabilities and archiving HTML security reports.
+* **SonarQube Analysis Stage:** Performs static code analysis using SonarScanner, sending code quality metrics to the configured SonarQube server with Jenkins-managed authentication.
+* **Post-build Actions:** Provides clear status messages indicating pipeline success, warnings, or failure based on the security and quality gates.
+
+This enhanced pipeline ensures **security scanning happens before code compilation**, implements **flexible security controls**, maintains **clean workspace isolation per stage**, and provides **comprehensive artifact archiving** for all test and security reports.
+
+### Workspace Separation & Container Strategy
+
+**Workspace separation** ensures each stage runs in its own clean environment to prevent cross-stage contamination. The **Maven stages** execute inside the `my-maven-git-sonarscanner` container because they need Maven, Java, and project dependencies. **Trivy scans outside this container** because it needs direct Docker daemon access to scan the image itself, not run project code. This separation maintains security (Trivy examines the build environment) while keeping build stages isolated and reproducible within their dedicated containers.
 
 ---
 
@@ -398,12 +424,10 @@ This method demonstrates:
 ## Screenshots
 
  * The following screenshot shows a successful Jenkins job where the analysis data has been sent to SonarQube:
-
 <img width="1232" height="639" alt="image" src="https://github.com/user-attachments/assets/96bc94a8-4c4e-48b5-9703-ca1100484d3d" />
 
 
 * This screenshot displays the history of code analyses triggered by our CI pipeline in SonarQube:
-
 <img width="1564" height="802" alt="image" src="https://github.com/user-attachments/assets/23cd94fe-7cc8-463e-a19a-65a0d0a4546a" />
 
 
@@ -417,6 +441,10 @@ This method demonstrates:
 
 * This screenshot displays the OWASP Dependency-Check HTML report, summarizing the vulnerability analysis of project dependencies using public security databases:
 ![WhatsApp Image 2025-12-19 at 9 01 30 PM](https://github.com/user-attachments/assets/5ee838b1-eadb-4c91-ad59-89e743df16ca)
+
+
+* This screenshot displays an example of a `trivy-report.json` in JSON format detailing security findings from container image scanning.
+<img width="975" height="526" alt="image" src="https://github.com/user-attachments/assets/f4ad839f-a76d-4aba-ad41-90f4fdad66d5" />
 
 
 ---
