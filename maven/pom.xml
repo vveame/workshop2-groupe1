@@ -27,7 +27,7 @@
       <plugin>
       <groupId>org.owasp</groupId>
       <artifactId>dependency-check-maven</artifactId>
-      <version>12.1.9</version> <!-- Vérifie la dernière version disponible -->
+      <version>12.2.0</version> <!-- Vérifie la dernière version disponible -->
       <executions>
         <execution>
           <id>check-dependencies</id>
